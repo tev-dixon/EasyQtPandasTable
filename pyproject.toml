@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "dataframe-table"
+version = "0.1.0"
+description = "A PyQt6 table widget backed by pandas DataFrames"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "PyQt6>=6.5",
+    "pandas>=2.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-qt>=4.4",
+]
+
+[tool.setuptools.packages.find]
+include = ["dataframe_table*"]
+
+[tool.pytest.ini_options]
+qt_api = "pyqt6"
+testpaths = ["tests"]
