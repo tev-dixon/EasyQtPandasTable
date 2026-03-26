@@ -108,23 +108,8 @@ Connect your widget's change signals to `self.filter_changed.emit()`.
 
 ## Running tests
 
+**Bash**
 ```bash
 pip install pytest pytest-qt
-QT_QPA_PLATFORM=offscreen pytest tests/ -v
-```
-
-## Project structure
-
-```
-dataframe_table/
-    __init__.py       Public exports
-    column.py         ColumnDef dataclass
-    model.py          QAbstractTableModel + view index array
-    delegates.py      CheckBoxDelegate, ButtonDelegate
-    filters.py        AbstractFilter, TextFilter, NumericFilter, DropdownFilter
-    filter_bar.py     Horizontal filter bar synced to header widths
-    widget.py         DataFrameTable (main widget), TableStyle
-tests/
-    test_dataframe_table.py   35 tests covering all features
-requirements.txt
+python -m pytest tests/ -v
 ```
