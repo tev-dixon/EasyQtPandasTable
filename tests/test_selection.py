@@ -57,3 +57,51 @@ class TestRegressionSelection:
         table.set_selected_rows(set())
         QApplication.processEvents()
         assert table.get_selected_rows() == set()
+
+
+class TestSelectFirstVisibleRow:
+    def test_selects_first_row(self, table):
+        src = table.select_first_visible_row()
+        assert src is not None
+        assert table.get_selected_rows() == {src}
+
+    def test_returns_source_index(self, table):
+        src = table.select_first_visible_row()
+        assert src == table.table_model.source_index(0)
+
+    def test_returns_none_on_empty(self, qtbot):
+        import pandas as pd
+        from dataframe_table import DataFrameTable
+        from conftest import _basic_columns
+        t = DataFrameTable(columns=_basic_columns())
+        qtbot.addWidget(t)
+        t.set_data(pd.DataFrame())
+        assert t.select_first_visible_row() is None
+        assert t.get_selected_rows() == set()
+
+    def test_respects_sort(self, table):
+        table.table_model.set_sort(2, ascending=True)
+        table.table_model.rebuild_view()
+        src = table.select_first_visible_row()
+        # Should be the row with the smallest value, not source row 0
+        assert src == table.table_model.source_index(0)
+        assert table.get_selected_rows() == {src}
+
+    def test_respects_filter(self, qtbot, sample_df):
+        from dataframe_table import ColumnDef, DataFrameTable, NumericFilter
+        from conftest import _basic_columns
+        nf = NumericFilter()
+        cols = _basic_columns()
+        cols[2] = ColumnDef(key="value", header="Value", stretch=1, filter_widget=nf)
+        t = DataFrameTable(columns=cols)
+        qtbot.addWidget(t)
+        t.set_data(sample_df)
+
+        nf._op.setCurrentText(">")
+        nf._edit.setText("900")
+        QApplication.processEvents()
+
+        src = t.select_first_visible_row()
+        assert src is not None
+        # The selected row must actually pass the filter
+        assert sample_df.at[src, "value"] > 900

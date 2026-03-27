@@ -193,6 +193,18 @@ class DataFrameTable(QWidget):
             rows.add(self._model.source_index(idx.row()))
         return rows
 
+    def select_first_visible_row(self) -> Optional[int]:
+        """Select the first visible row.
+
+        Returns the source DataFrame iloc index of the selected row,
+        or ``None`` if the view is empty (e.g. all rows filtered out).
+        """
+        if self._model.rowCount() == 0:
+            return None
+        src = self._model.source_index(0)
+        self.set_selected_rows({src})
+        return src
+
     # ---- columns ------------------------------------------------------
 
     def set_column_visible(self, key: str, visible: bool) -> None:
