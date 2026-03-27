@@ -11,8 +11,8 @@ from PyQt6.QtWidgets import QComboBox, QHBoxLayout
 class _LazyComboBox(QComboBox):
     """QComboBox that calls a function to populate options on every popup open."""
  
-    def __init__(self, options_fn: Callable[[], Sequence[str]], all_label: str, parent=None):
-        super().__init__(parent)
+    def __init__(self, options_fn: Callable[[], Sequence[str]], all_label: str):
+        super().__init__()
         self._options_fn = options_fn
         self._all_label = all_label
  
@@ -59,13 +59,12 @@ class DropdownFilter(AbstractFilter):
     def __init__(
         self,
         options: Optional[Sequence[str]] = None,
-        options_fn: Optional[Callable[[], Sequence[str]]] = None,
-        parent=None,
+        options_fn: Optional[Callable[[], Sequence[str]]] = None
     ):
         if options is not None and options_fn is not None:
             raise ValueError("Pass 'options' or 'options_fn', not both.")
  
-        super().__init__(parent)
+        super().__init__()
         layout = QHBoxLayout(self)
         layout.setContentsMargins(1, 1, 1, 1)
  
