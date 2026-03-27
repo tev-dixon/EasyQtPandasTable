@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QWidget, QPushButton, QLabel,
 )
 
-# ── Import everything you need from the package ──
 from dataframe_table import (
     ColumnDef,
     DataFrameTable,
@@ -37,58 +36,61 @@ def make_sample_data(n: int = 500) -> pd.DataFrame:
     })
 
 
+# Simulates a live source that changes over time
+_dynamic_tags = ["Sale", "New", "Clearance"]
+
+def get_tags() -> list[str]:
+    """Called every time the Tags dropdown is opened."""
+    return _dynamic_tags
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("DataFrameTable Example")
         self.resize(1000, 600)
 
+        self.df = make_sample_data()
+
+        # Assign random tags for the dynamic filter demo
+        rng = np.random.RandomState(1)
+        self.df["tag"] = rng.choice(_dynamic_tags, len(self.df))
+
         # ── Define columns ──
-        # Each ColumnDef maps to a DataFrame column by `key`.
-        # Columns can have filters, delegates, formatters, etc.
         columns = [
             ColumnDef(
-                key="id",
-                header="ID",
-                stretch=0.5,
-                sortable=True,
+                key="id", header="ID", stretch=0.5, sortable=True,
             ),
             ColumnDef(
-                key="name",
-                header="Product Name",
-                stretch=2.5,
+                key="name", header="Product Name", stretch=2,
                 sortable=True,
                 filter_widget=TextFilter(placeholder="Search names…"),
             ),
             ColumnDef(
-                key="price",
-                header="Price",
-                stretch=1,
+                key="price", header="Price", stretch=1,
                 sortable=True,
                 filter_widget=NumericFilter(placeholder="e.g. 100"),
                 formatter=lambda v: f"${v:,.2f}",
             ),
             ColumnDef(
-                key="in_stock",
-                header="In Stock",
-                stretch=0.6,
+                key="in_stock", header="In Stock", stretch=0.5,
                 delegate=CheckBoxDelegate(),
             ),
             ColumnDef(
-                key="category",
-                header="Category",
-                stretch=1.2,
+                key="category", header="Category", stretch=1,
                 sortable=True,
-                filter_widget=DropdownFilter(),  # auto-populates from data
+                filter_widget=DropdownFilter(),  # auto mode — populates from data
             ),
-            # Button column — key doesn't need to exist in the DF
             ColumnDef(
-                key="_delete",
-                header="",
-                stretch=0.6,
+                key="tag", header="Tag", stretch=0.8,
+                sortable=True,
+                # dynamic mode — calls get_tags() every time dropdown opens
+                filter_widget=DropdownFilter(options_fn=get_tags),
+            ),
+            ColumnDef(
+                key="_delete", header="", stretch=0.5,
                 delegate=ButtonDelegate(
-                    text="Delete",
-                    on_click=self._on_delete_clicked,
+                    text="Delete", on_click=self._on_delete_clicked,
                 ),
             ),
         ]
@@ -103,50 +105,75 @@ class MainWindow(QMainWindow):
                 grid_visible=True,
             ),
         )
-
-        # ── Load data ──
-        self.df = make_sample_data()
         self.table.set_data(self.df)
 
-        # ── Connect selection signal ──
+        # ── Signals ──
         self.table.selection_changed.connect(self._on_selection_changed)
+        self.table.table_model.dataChanged.connect(self._on_data_changed)
 
-        # ── Toolbar buttons ──
+        # ── Toolbar row 1 — basics ──
         btn_toggle_filters = QPushButton("Toggle Filters")
         btn_toggle_filters.clicked.connect(
-            lambda: self.table.set_filter_bar_visible(not self.table.is_filter_bar_visible())
+            lambda: self.table.set_filter_bar_visible(
+                not self.table.is_filter_bar_visible()
+            )
         )
 
         btn_reset_filters = QPushButton("Reset Filters")
         btn_reset_filters.clicked.connect(self.table.reset_filters)
 
-        btn_hide_price = QPushButton("Toggle Price Column")
-        btn_hide_price.clicked.connect(
+        btn_toggle_price = QPushButton("Toggle Price Column")
+        btn_toggle_price.clicked.connect(
             lambda: self.table.set_column_visible(
                 "price", not self.table.is_column_visible("price")
             )
         )
 
-        btn_select = QPushButton("Select rows 0, 2, 4")
-        btn_select.clicked.connect(lambda: self.table.set_selected_rows({0, 2, 4}))
+        btn_select_rows = QPushButton("Select rows 0, 2, 4")
+        btn_select_rows.clicked.connect(
+            lambda: self.table.set_selected_rows({0, 2, 4})
+        )
 
-        btn_update = QPushButton("Set row 0 name → 'UPDATED'")
-        btn_update.clicked.connect(lambda: self.table.update_cell(0, "name", "UPDATED"))
+        # ── Toolbar row 2 — new features ──
+        btn_select_first = QPushButton("Select First Visible")
+        btn_select_first.clicked.connect(self._select_first)
+
+        btn_update_cell = QPushButton("Set row 0 name → 'UPDATED'")
+        btn_update_cell.clicked.connect(
+            lambda: self.table.update_cell(0, "name", "UPDATED")
+        )
+
+        btn_bulk_update = QPushButton("Bulk: discount prices 10%")
+        btn_bulk_update.clicked.connect(self._bulk_discount)
+
+        btn_get_filter = QPushButton("get_filter('name') → set 'Item 1'")
+        btn_get_filter.clicked.connect(self._use_get_filter)
+
+        btn_add_tag = QPushButton("Add dynamic tag 'Limited'")
+        btn_add_tag.clicked.connect(self._add_dynamic_tag)
 
         self.status = QLabel("Selection: (none)")
 
         # ── Layout ──
-        toolbar = QHBoxLayout()
-        for btn in [btn_toggle_filters, btn_reset_filters, btn_hide_price, btn_select, btn_update]:
-            toolbar.addWidget(btn)
-        toolbar.addStretch()
+        row1 = QHBoxLayout()
+        for btn in [btn_toggle_filters, btn_reset_filters, btn_toggle_price, btn_select_rows]:
+            row1.addWidget(btn)
+        row1.addStretch()
+
+        row2 = QHBoxLayout()
+        for btn in [btn_select_first, btn_update_cell, btn_bulk_update, btn_get_filter, btn_add_tag]:
+            row2.addWidget(btn)
+        row2.addStretch()
 
         central = QWidget()
         layout = QVBoxLayout(central)
-        layout.addLayout(toolbar)
+        layout.addLayout(row1)
+        layout.addLayout(row2)
         layout.addWidget(self.table)
         layout.addWidget(self.status)
         self.setCentralWidget(central)
+
+    # ── Slots ──
 
     def _on_selection_changed(self, selected: set):
         if selected:
@@ -154,10 +181,48 @@ class MainWindow(QMainWindow):
         else:
             self.status.setText("Selection: (none)")
 
+    def _on_data_changed(self, top_left, bottom_right, roles):
+        row = top_left.row()
+        col = top_left.column()
+        print(f"dataChanged: view row={row}, col={col}")
+
     def _on_delete_clicked(self, source_row: int):
         name = self.df.at[source_row, "name"]
         print(f"Delete clicked for row {source_row}: {name}")
-        # In a real app you'd remove the row from the DF and call set_data() again
+
+    def _select_first(self):
+        src = self.table.select_first_visible_row()
+        if src is not None:
+            print(f"Selected first visible row: source index {src}")
+        else:
+            print("No visible rows to select")
+
+    def _bulk_discount(self):
+        updates = [
+            (i, "price", round(self.df.at[i, "price"] * 0.9, 2))
+            for i in range(len(self.df))
+        ]
+        self.table.update_cells_bulk(updates)
+        self.df = self.table.get_data()
+        print("Applied 10% discount to all prices")
+
+    def _use_get_filter(self):
+        """Demonstrate get_filter() — retrieve the name filter and set it."""
+        filt = self.table.get_filter("name")
+        if filt is not None:
+            self.table.set_filter_bar_visible(True)
+            filt._edit.setText("Item 1")
+            print("Programmatically set name filter to 'Item 1'")
+        else:
+            print("No filter found for 'name'")
+
+    def _add_dynamic_tag(self):
+        """Add a new tag to the dynamic source — visible next time dropdown opens."""
+        if "Limited" not in _dynamic_tags:
+            _dynamic_tags.append("Limited")
+            print("Added 'Limited' to dynamic tags — open the Tag dropdown to see it")
+        else:
+            print("'Limited' already in tags")
 
 
 if __name__ == "__main__":
