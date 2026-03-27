@@ -25,13 +25,7 @@ from typing import List, Optional, Set
 
 import pandas as pd
 from PyQt6.QtCore import QItemSelectionModel, QTimer, Qt, pyqtSignal
-from PyQt6.QtWidgets import (
-    QAbstractItemView,
-    QHeaderView,
-    QTableView,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QAbstractItemView, QHeaderView, QTableView, QVBoxLayout, QWidget
 
 from .column import ColumnDef
 from .filter_bar import FilterBar
