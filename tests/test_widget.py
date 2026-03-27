@@ -26,6 +26,23 @@ class TestFilterBar:
         assert not table.is_filter_bar_visible()
 
 
+class TestGetFilter:
+    def test_returns_filter_widget(self, qtbot, sample_df):
+        tf = TextFilter()
+        cols = _basic_columns()
+        cols[1] = ColumnDef(key="name", header="Name", stretch=2, filter_widget=tf)
+        t = DataFrameTable(columns=cols)
+        qtbot.addWidget(t)
+        t.set_data(sample_df)
+        assert t.get_filter("name") is tf
+
+    def test_returns_none_for_no_filter(self, table):
+        assert table.get_filter("id") is None
+
+    def test_returns_none_for_unknown_key(self, table):
+        assert table.get_filter("nonexistent") is None
+
+
 class TestEdgeCases:
     def test_empty_dataframe(self, qtbot):
         t = DataFrameTable(columns=_basic_columns())
