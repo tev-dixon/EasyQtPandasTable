@@ -7,7 +7,6 @@ import pandas as pd
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLineEdit
 
 class TextFilter(AbstractFilter):
-    """Free-text filter with mode selector (Contains / Equals / Regex)."""
 
     MODES = ["Contains", "Equals", "Regex"]
 

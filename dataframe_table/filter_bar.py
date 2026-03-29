@@ -1,12 +1,3 @@
-"""Horizontal filter bar whose widgets mirror the table column widths.
-
-Uses manual ``setGeometry()`` positioning instead of a QHBoxLayout so that
-**no minimum-size propagation** reaches the parent.  A QHBoxLayout would
-aggregate its children's intrinsic minimums (QComboBox, QLineEdit, etc.)
-and force the parent to stay wide — causing white-space on show/hide and
-preventing the window from shrinking below that minimum.
-"""
-
 from __future__ import annotations
 
 from typing import List, Optional
@@ -18,11 +9,6 @@ from .column import ColumnDef
 
 
 class FilterBar(QFrame):
-    """A thin bar of filter widgets positioned to match table column widths.
-
-    No layout is used — children are positioned manually in ``sync_widths``
-    so the bar never imposes a minimum width on its parent.
-    """
 
     _HEIGHT = 32
     _WIDGET_HEIGHT = 28
@@ -36,7 +22,7 @@ class FilterBar(QFrame):
         self.setFixedHeight(self._HEIGHT)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
 
-        # Create widgets as direct children (no layout)
+        # Create widgets as direct children (no layout to avoid filter bar imposing sizing on parent)
         self._widgets: List[QWidget] = []
         for col in columns:
             w = col.filter_widget if col.filter_widget else QWidget()
@@ -55,7 +41,6 @@ class FilterBar(QFrame):
         self.sync_widths()
 
     def sync_widths(self) -> None:
-        """Position each filter widget to match the corresponding header section."""
         if self._table_view is None:
             return
         header = self._table_view.horizontalHeader()

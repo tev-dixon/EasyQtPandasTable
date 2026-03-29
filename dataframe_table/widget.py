@@ -1,23 +1,3 @@
-"""DataFrameTable — the main public widget.
-
-Usage::
-
-    table = DataFrameTable(
-        columns=[
-            ColumnDef(key="name", header="Name", stretch=2, sortable=True,
-                      filter_widget=TextFilter()),
-            ColumnDef(key="age", header="Age", stretch=1, sortable=True,
-                      filter_widget=NumericFilter()),
-            ColumnDef(key="active", header="Active", stretch=0.5,
-                      delegate=CheckBoxDelegate()),
-            ColumnDef(key="actions", header="",
-                      delegate=ButtonDelegate(text="Del", on_click=print)),
-        ],
-        selection_mode="extended",
-    )
-    table.set_data(my_dataframe)
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,14 +5,8 @@ from enum import Enum
 from typing import List, Optional, Set, Union
 
 import pandas as pd
-from PyQt6.QtCore import QItemSelectionModel, QTimer, Qt, pyqtSignal
-from PyQt6.QtWidgets import (
-    QAbstractItemView,
-    QHeaderView,
-    QTableView,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtCore import QItemSelectionModel, Qt, pyqtSignal
+from PyQt6.QtWidgets import QAbstractItemView, QHeaderView, QTableView, QVBoxLayout, QWidget
 
 from .column import ColumnDef
 from .filter_bar import FilterBar
@@ -41,20 +15,14 @@ from .model import DataFrameTableModel
 
 @dataclass
 class TableStyle:
-    """Visual defaults — all optional, sane defaults provided."""
-
     alternating_rows: bool = True
     grid_visible: bool = True
     row_height: int = 30
     show_row_numbers: bool = False
-    selection_color: Optional[str] = None
-    font_size: Optional[int] = None
-    header_font_size: Optional[int] = None
+    stylesheet: Optional[str] = ""
 
 
 class SelectionMode(Enum):
-    """Row selection behaviour for :class:`DataFrameTable`."""
-
     Single = "single"
     Multi = "multi"
     Extended = "extended"
@@ -66,45 +34,20 @@ _SELECTION_MODE_MAP = {
     SelectionMode.Extended: QAbstractItemView.SelectionMode.ExtendedSelection,
 }
 
-# Also accept plain strings for convenience
-_SELECTION_MODE_STRINGS = {m.value: m for m in SelectionMode}
-
-
-def _resolve_selection_mode(
-    mode: Union[str, SelectionMode],
-) -> QAbstractItemView.SelectionMode:
-    if isinstance(mode, str):
-        mode = _SELECTION_MODE_STRINGS.get(mode.lower())
-        if mode is None:
-            raise ValueError(
-                f"Unknown selection mode. Use one of: "
-                f"{', '.join(repr(m.value) for m in SelectionMode)} "
-                f"or a SelectionMode enum member."
-            )
-    return _SELECTION_MODE_MAP[mode]
-
 
 class DataFrameTable(QWidget):
-    """Feature-rich table backed by a pandas DataFrame.
-
-    Signals:
-        selection_changed(set[int]): Emitted with the set of currently
-            selected source DataFrame iloc indices whenever the selection
-            changes.
-    """
-
     selection_changed = pyqtSignal(set)
 
     def __init__(
         self,
         columns: List[ColumnDef],
         selection_mode: Union[str, SelectionMode] = SelectionMode.Extended,
-        style: Optional[TableStyle] = None,
+        table_style: Optional[TableStyle] = None,
         parent: Optional[QWidget] = None,
     ):
         super().__init__(parent)
         self._columns = columns
-        self._style = style or TableStyle()
+        self._table_style = table_style or TableStyle()
 
         # ---- model ----
         self._model = DataFrameTableModel(columns, parent=self)
@@ -114,14 +57,12 @@ class DataFrameTable(QWidget):
         self._view.setModel(self._model)
         self._apply_style()
         self._view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self._view.setSelectionMode(_resolve_selection_mode(selection_mode))
+        self._view.setSelectionMode(_SELECTION_MODE_MAP[selection_mode])
         self._view.horizontalHeader().setStretchLastSection(False)
         self._view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         self._view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._view.horizontalHeader().sectionClicked.connect(self._on_header_clicked)
         self._view.selectionModel().selectionChanged.connect(self._on_selection_changed)
-        # Re-stretch when vertical scrollbar appears/disappears (changes viewport width)
-        self._view.verticalScrollBar().rangeChanged.connect(lambda: self._schedule_stretch())
 
         # ---- delegates ----
         for i, col in enumerate(columns):
@@ -149,69 +90,38 @@ class DataFrameTable(QWidget):
         layout.addWidget(self._filter_bar)
         layout.addWidget(self._view)
 
-        self._resize_timer = QTimer(self)
-        self._resize_timer.setSingleShot(True)
-        self._resize_timer.setInterval(16)  # ~1 frame at 60fps
-        self._resize_timer.timeout.connect(self._deferred_stretch)
-
     # ==================================================================
     # Public API
     # ==================================================================
 
     def set_data(self, df: pd.DataFrame) -> None:
-        """Load a new DataFrame (or replace existing data)."""
         self._model.set_dataframe(df)
-        self._do_stretch()
-        self._schedule_stretch()
 
     def get_data(self) -> pd.DataFrame:
         return self._model.get_dataframe()
 
     def update_cell(self, source_row: int, col_key: str, value) -> None:
-        """Update a single cell by source DataFrame iloc index and column key."""
         self._model.update_cell(source_row, col_key, value)
 
     def update_cells_bulk(self, updates: list) -> None:
-        """Batch-update many cells with a single repaint.
-
-        Args:
-            updates: List of ``(source_row, col_key, value)`` tuples.
-        """
         self._model.update_cells_bulk(updates)
 
     # ---- selection ----------------------------------------------------
 
     def set_selected_rows(self, source_indices: Set[int]) -> None:
-        """Programmatically select rows by source DataFrame iloc indices.
-
-        Gives focus to the table so that the active (dark blue) selection
-        palette is used rather than the inactive (light grey) one.
-        """
         sel = self._view.selectionModel()
         sel.clearSelection()
         if not source_indices:
             return
-        first_set = False
+        top_view_row = None
         for src in source_indices:
             view_row = self._model.view_row_for_source(src)
             if view_row is not None:
-                idx = self._model.index(view_row, 0)
-                if not first_set:
-                    # First row: ClearAndSelect + set as current index
-                    sel.select(
-                        idx,
-                        QItemSelectionModel.SelectionFlag.ClearAndSelect
-                        | QItemSelectionModel.SelectionFlag.Rows,
-                    )
-                    sel.setCurrentIndex(idx, QItemSelectionModel.SelectionFlag.Current)
-                    first_set = True
-                else:
-                    sel.select(
-                        idx,
-                        QItemSelectionModel.SelectionFlag.Select
-                        | QItemSelectionModel.SelectionFlag.Rows,
-                    )
-        # Give focus so Qt uses the active palette (dark blue) not inactive (grey)
+                sel.select(self._model.index(view_row, 0), QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows)
+                if top_view_row is None or view_row < top_view_row:
+                    top_view_row = view_row
+        if top_view_row is not None:
+            sel.setCurrentIndex(self._model.index(top_view_row, 0), QItemSelectionModel.SelectionFlag.Current)
         self._view.setFocus()
 
     def get_selected_rows(self) -> Set[int]:
@@ -221,11 +131,6 @@ class DataFrameTable(QWidget):
         return rows
 
     def select_first_visible_row(self) -> Optional[int]:
-        """Select the first visible row.
-
-        Returns the source DataFrame iloc index of the selected row,
-        or ``None`` if the view is empty (e.g. all rows filtered out).
-        """
         if self._model.rowCount() == 0:
             return None
         src = self._model.source_index(0)
@@ -237,17 +142,8 @@ class DataFrameTable(QWidget):
     def set_column_visible(self, key: str, visible: bool) -> None:
         col_idx = self._col_index(key)
         if col_idx is not None:
-            header = self._view.horizontalHeader()
-            if visible and self._view.isColumnHidden(col_idx):
-                # Zero the section before unhiding so its default width
-                # never inflates the header beyond the viewport.
-                header.resizeSection(col_idx, 0)
             self._view.setColumnHidden(col_idx, not visible)
-            # Apply stretch immediately (geometry is stable here — no
-            # resize event in flight) then schedule a deferred pass to
-            # catch any layout settling.
             self._do_stretch()
-            self._schedule_stretch()
 
     def is_column_visible(self, key: str) -> bool:
         col_idx = self._col_index(key)
@@ -257,8 +153,6 @@ class DataFrameTable(QWidget):
 
     def set_filter_bar_visible(self, visible: bool) -> None:
         self._filter_bar.setVisible(visible)
-        if visible:
-            self._schedule_stretch()
 
     def is_filter_bar_visible(self) -> bool:
         return self._filter_bar.isVisible()
@@ -272,8 +166,6 @@ class DataFrameTable(QWidget):
         self._model.rebuild_view()
 
     def get_filter(self, key: str):
-        """Return the filter widget for *key*, or ``None`` if the column
-        has no filter or the key does not exist."""
         for col in self._columns:
             if col.key == key:
                 return col.filter_widget
@@ -300,39 +192,13 @@ class DataFrameTable(QWidget):
         return None
 
     def _apply_style(self) -> None:
-        s = self._style
-        self._view.setAlternatingRowColors(s.alternating_rows)
-        self._view.setShowGrid(s.grid_visible)
-        self._view.verticalHeader().setDefaultSectionSize(s.row_height)
-        if not s.show_row_numbers:
-            self._view.verticalHeader().hide()
-        else:
-            self._view.verticalHeader().show()
-        parts: list[str] = []
-        if s.selection_color:
-            parts.append(f"QTableView::item:selected {{ background: {s.selection_color}; }}")
-        if s.font_size:
-            parts.append(f"QTableView {{ font-size: {s.font_size}px; }}")
-        if s.header_font_size:
-            parts.append(f"QHeaderView::section {{ font-size: {s.header_font_size}px; }}")
-        if parts:
-            self._view.setStyleSheet("\n".join(parts))
-
-    def _schedule_stretch(self) -> None:
-        """Debounce: restart the timer so stretch fires once after
-        the resize/show/hide event storm settles."""
-        self._resize_timer.start()
-
-    def _deferred_stretch(self) -> None:
-        # Guard: if the widget is being torn down, bail out.
-        try:
-            self._view.viewport()
-        except RuntimeError:
-            return
-        self._do_stretch()
+        self._view.setAlternatingRowColors(self._table_style.alternating_rows)
+        self._view.setShowGrid(self._table_style.grid_visible)
+        self._view.verticalHeader().setDefaultSectionSize(self._table_style.row_height)
+        self._view.verticalHeader().setVisible(self._table_style.show_row_numbers)
+        self._view.setStyleSheet(self._table_style.stylesheet)
 
     def _do_stretch(self) -> None:
-        """Distribute column widths proportionally by stretch ratio."""
         header = self._view.horizontalHeader()
         available = self._view.viewport().width()
         if available <= 0:
@@ -341,38 +207,29 @@ class DataFrameTable(QWidget):
         total_stretch = sum(c.stretch for _, c in visible)
         if total_stretch <= 0:
             return
-        # Block signals to batch all resizes — prevents per-section
-        # repaints and cascading layout recalculations.
         header.blockSignals(True)
         try:
             allocated = 0
             for idx, (i, col) in enumerate(visible):
                 if idx == len(visible) - 1:
-                    # Last column absorbs rounding remainder so total == available exactly
                     w = available - allocated
                 else:
-                    w = max(int(available * col.stretch / total_stretch), 30)
+                    w = int(available * col.stretch / total_stretch)
                 allocated += w
                 header.resizeSection(i, w)
         finally:
             header.blockSignals(False)
-        # Signals were blocked during resize — force the view to repaint
-        # both the header and the body so rows stay in sync with columns.
         header.viewport().update()
         self._view.viewport().update()
         self._filter_bar.sync_widths()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self._schedule_stretch()
+        self._do_stretch()
 
     def showEvent(self, event):
         super().showEvent(event)
-        self._schedule_stretch()
-
-    def closeEvent(self, event):
-        self._resize_timer.stop()
-        super().closeEvent(event)
+        self._do_stretch()
 
     def _on_header_clicked(self, logical_index: int) -> None:
         col = self._columns[logical_index]
@@ -385,9 +242,7 @@ class DataFrameTable(QWidget):
             asc = True
         self._model.set_sort(logical_index, asc)
         self._model.rebuild_view()
-        header.setSortIndicator(
-            logical_index, Qt.SortOrder.AscendingOrder if asc else Qt.SortOrder.DescendingOrder
-        )
+        header.setSortIndicator(logical_index, Qt.SortOrder.AscendingOrder if asc else Qt.SortOrder.DescendingOrder)
         header.setSortIndicatorShown(True)
 
     def _on_filter_changed(self) -> None:

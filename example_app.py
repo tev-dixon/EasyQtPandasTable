@@ -20,6 +20,7 @@ from dataframe_table import (
     DropdownFilter,
     CheckBoxDelegate,
     ButtonDelegate,
+    SelectionMode
 )
 
 
@@ -101,8 +102,8 @@ class MainWindow(QMainWindow):
         # ── Create the table ──
         self.table = DataFrameTable(
             columns=columns,
-            selection_mode="extended",
-            style=TableStyle(
+            selection_mode=SelectionMode.Extended,
+            table_style=TableStyle(
                 alternating_rows=True,
                 row_height=30,
                 grid_visible=True,

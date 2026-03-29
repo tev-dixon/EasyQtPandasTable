@@ -8,13 +8,6 @@ from PyQt6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem, QStyledI
 
 
 class ButtonDelegate(QStyledItemDelegate):
-    """Paints a clickable button in each cell.
-
-    Args:
-        text: Fixed label **or** ``(source_row_idx, raw_value) -> str``.
-        on_click: ``(source_row_iloc_index) -> None`` called on click.
-        padding: Pixels between cell edge and button rect.
-    """
 
     def __init__(
         self,

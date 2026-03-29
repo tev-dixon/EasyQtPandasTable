@@ -7,7 +7,6 @@ import pandas as pd
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLineEdit
 
 class NumericFilter(AbstractFilter):
-    """Numeric comparison filter (=, <, >, <=, >=, !=)."""
 
     OPS = ["=", "<", ">", "<=", ">=", "!="]
 
@@ -47,7 +46,6 @@ class NumericFilter(AbstractFilter):
         except (ValueError, TypeError):
             return np.ones(len(series), dtype=bool)
         numeric = pd.to_numeric(series, errors="coerce")
-        ops = {"=": numeric == val, "<": numeric < val, ">": numeric > val,
-               "<=": numeric <= val, ">=": numeric >= val, "!=": numeric != val}
+        ops = {"=": numeric == val, "<": numeric < val, ">": numeric > val, "<=": numeric <= val, ">=": numeric >= val, "!=": numeric != val}
         result = ops.get(self._op.currentText(), pd.Series(np.ones(len(series), dtype=bool)))
         return result.fillna(False).values

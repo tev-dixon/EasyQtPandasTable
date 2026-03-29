@@ -1,5 +1,3 @@
-"""QAbstractTableModel backed by a pandas DataFrame."""
-
 from __future__ import annotations
 
 from typing import Any, List, Optional
@@ -12,10 +10,6 @@ from .column import ColumnDef
 
 
 class DataFrameTableModel(QAbstractTableModel):
-    """High-performance model that keeps a *view index array* into the source
-    DataFrame.  Sorting and filtering operate on this array using vectorised
-    numpy / pandas operations so that ``data()`` remains O(1).
-    """
 
     def __init__(self, columns: List[ColumnDef], parent=None):
         super().__init__(parent)
@@ -54,25 +48,17 @@ class DataFrameTableModel(QAbstractTableModel):
         return self._df
 
     def update_cell(self, source_row: int, col_key: str, value: Any) -> None:
-        """Update a single cell in the source DataFrame and notify views."""
         if col_key not in self._df.columns:
             return
         self._df.iat[source_row, self._df.columns.get_loc(col_key)] = value
         view_row = self.view_row_for_source(source_row)
         if view_row is not None:
-            col_idx = next(
-                (i for i, c in enumerate(self._columns) if c.key == col_key), None
-            )
+            col_idx = next((i for i, c in enumerate(self._columns) if c.key == col_key), None)
             if col_idx is not None:
                 idx = self.index(view_row, col_idx)
                 self.dataChanged.emit(idx, idx, [])
 
     def update_cells_bulk(self, updates: List[tuple]) -> None:
-        """Batch-update many cells with a single repaint.
-
-        Args:
-            updates: List of ``(source_row, col_key, value)`` tuples.
-        """
         for source_row, col_key, value in updates:
             if col_key in self._df.columns:
                 self._df.iat[source_row, self._df.columns.get_loc(col_key)] = value
@@ -83,7 +69,6 @@ class DataFrameTableModel(QAbstractTableModel):
     # ------------------------------------------------------------------
 
     def rebuild_view(self) -> None:
-        """Public trigger for sort/filter recalculation."""
         self.beginResetModel()
         self._rebuild_view()
         self.endResetModel()

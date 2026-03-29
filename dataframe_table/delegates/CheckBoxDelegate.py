@@ -7,10 +7,6 @@ from PyQt6.QtWidgets import QApplication, QStyle, QStyleOptionButton, QStyleOpti
 
 
 class CheckBoxDelegate(QStyledItemDelegate):
-    """Paints a native-looking checkbox centred in the cell.
-
-    Reads/writes a boolean via the model's ``EditRole``.
-    """
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         self.initStyleOption(option, index)

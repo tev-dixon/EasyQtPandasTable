@@ -1,5 +1,3 @@
-"""Column definition for DataFrameTable."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,21 +12,6 @@ if TYPE_CHECKING:
 
 @dataclass
 class ColumnDef:
-    """Defines a single column in the table.
-
-    Args:
-        key: DataFrame column name.
-        header: Display header text. Defaults to *key*.
-        stretch: Relative width weight (e.g. 2 = twice as wide as 1).
-        sortable: Allow sorting by clicking the header.
-        filter_widget: An ``AbstractFilter`` instance for the filter bar.
-        delegate: A ``QStyledItemDelegate`` for custom cell rendering.
-        hidden: Start hidden.
-        alignment: Qt alignment flags for cell text.
-        formatter: ``(raw_value) -> str`` for display text.
-        editable: Whether cells in this column accept edits.
-    """
-
     key: str
     header: Optional[str] = None
     stretch: float = 1.0

@@ -107,7 +107,7 @@ class TestEdgeCases:
             show_row_numbers=True, font_size=14, header_font_size=16,
             selection_color="#3399ff",
         )
-        t = DataFrameTable(columns=_basic_columns(), style=style)
+        t = DataFrameTable(columns=_basic_columns(), table_style=style)
         qtbot.addWidget(t)
         t.set_data(sample_df)
         t.show()

@@ -10,7 +10,6 @@ from PyQt6.QtWidgets import QComboBox, QHBoxLayout
 
 
 class _LazyComboBox(QComboBox):
-    """QComboBox that calls a function to populate options on every popup open."""
  
     def __init__(self, options_fn: Callable[[], Sequence[str]], all_label: str):
         super().__init__()
@@ -31,22 +30,6 @@ class _LazyComboBox(QComboBox):
 
 
 class DropdownFilter(AbstractFilter):
-    """Dropdown that filters to a single selected value (or *All*).
- 
-    Args:
-        options_fn: A callable that returns the current list of options.
-            Invoked every time the dropdown is opened (via ``showPopup``),
-            so the list is always fresh.  If ``None``, the dropdown starts
-            with only "(All)".
- 
-    .. warning::
- 
-       ``options_fn`` is called on the **main/UI thread** every time the
-       user opens the dropdown.  If the callable is slow (e.g. an
-       unindexed database query), it will block the interface until it
-       returns.  Keep the function fast, or cache results externally and
-       invalidate on your own schedule.
-    """
  
     _ALL_LABEL = "(All)"
  
