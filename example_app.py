@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
 
         # ── Signals ──
         self.table.selection_changed.connect(self._on_selection_changed)
-        self.table.table_model.dataChanged.connect(self._on_data_changed)
+        self.table.data_updated.connect(self._on_data_changed)
 
         # ── Toolbar row 1 — basics ──
         btn_toggle_filters = QPushButton("Toggle Filters")
@@ -189,10 +189,8 @@ class MainWindow(QMainWindow):
         else:
             self.status.setText("Selection: (none)")
 
-    def _on_data_changed(self, top_left, bottom_right, roles):
-        row = top_left.row()
-        col = top_left.column()
-        print(f"dataChanged: view row={row}, col={col}")
+    def _on_data_changed(self, indices):
+        print(f"dataChanged: {indices}")
 
     def _on_delete_clicked(self, source_row: int):
         name = self.df.at[source_row, "name"]
