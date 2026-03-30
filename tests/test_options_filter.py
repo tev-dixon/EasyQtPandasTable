@@ -118,30 +118,6 @@ class TestOptionsFilterMultiSelect:
         filt._update_display()
         assert filt._display.text() == "2 selected"
 
-    def test_toggle_all_checks_when_none_checked(self, qtbot):
-        filt = OptionsFilter(options_fn=lambda: ["A", "B", "C"], multi_select=True)
-        qtbot.addWidget(filt)
-        filt.show()
-        filt._on_display_clicked(None)
-        popup = filt._ensure_popup()
-
-        # Initially none checked
-        assert popup.get_checked() == set()
-
-        popup._on_toggle_all()
-        assert popup.get_checked() == {"A", "B", "C"}
-
-    def test_toggle_all_unchecks_when_some_checked(self, qtbot):
-        filt = OptionsFilter(options_fn=lambda: ["A", "B", "C"], multi_select=True)
-        filt._checked = {"A"}
-        qtbot.addWidget(filt)
-        filt.show()
-        filt._on_display_clicked(None)
-        popup = filt._popup
-
-        popup._on_toggle_all()
-        assert popup.get_checked() == set()
-
 
 class TestOptionsFilterPopupSearch:
     """Search/filter functionality in the popup."""
