@@ -130,6 +130,15 @@ class DataFrameTable(QWidget):
             rows.add(self._model.source_index(idx.row()))
         return rows
 
+    def get_row(self, source_index: int, as_dict: bool = False):
+        row = self._model.get_dataframe().iloc[source_index]
+        return dict(row) if as_dict else row
+
+    def get_rows(self, source_indices, as_dict: bool = False):
+        indices = sorted(source_indices)
+        sub = self._model.get_dataframe().iloc[indices]
+        return sub.to_dict(orient="records") if as_dict else sub
+
     def select_first_visible_row(self) -> Optional[int]:
         if self._model.rowCount() == 0:
             return None
