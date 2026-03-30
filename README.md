@@ -10,7 +10,7 @@ A PyQt6 table widget backed by a pandas DataFrame, built for performance at tens
 - **Sorting** — click a sortable column header to toggle ascending/descending. Uses vectorised `argsort`.
 - **Filter bar** — a hideable row of filter widgets aligned pixel-for-pixel to the columns below. Ships with `TextFilter`, `NumericFilter`, and `DropdownFilter`. Implement `AbstractFilter` for your own.
 - **Painted delegates** — `CheckBoxDelegate` and `ButtonDelegate` render interactive controls via `paint()`/`editorEvent()` with zero per-row widget cost.
-- **Row selection** — single, multi, or extended. `set_selected_rows()` and `get_selected_rows()` work with source DataFrame iloc indices. A `selection_changed` signal emits the current set.
+- **Row selection** — single, multi, or extended. `set_selected_rows()` and `get_selected_row_indexes()` work with source DataFrame iloc indices. A `selection_changed` signal emits the current set.
 - **Column visibility** — show/hide columns at runtime; stretch ratios and filter bar adjust automatically.
 - **Styling** — `TableStyle` dataclass for alternating rows, grid, row height, font sizes, selection colour, and row numbers.
 
@@ -69,7 +69,7 @@ table.show()
 | `get_data() -> DataFrame` | Return a reference to the underlying DataFrame. |
 | `update_cell(source_row, col_key, value)` | Update one cell by iloc index and column key. |
 | `set_selected_rows(set[int])` | Programmatically select rows (source iloc indices). |
-| `get_selected_rows() -> set[int]` | Get currently selected source iloc indices. |
+| `get_selected_row_indexes() -> set[int]` | Get currently selected source iloc indices. |
 | `selection_changed` signal | Emitted with `set[int]` on every selection change. |
 | `set_column_visible(key, bool)` | Show or hide a column by key. |
 | `set_filter_bar_visible(bool)` | Toggle the filter bar. |

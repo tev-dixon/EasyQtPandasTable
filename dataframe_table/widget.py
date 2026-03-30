@@ -124,7 +124,7 @@ class DataFrameTable(QWidget):
             sel.setCurrentIndex(self._model.index(top_view_row, 0), QItemSelectionModel.SelectionFlag.Current)
         self._view.setFocus()
 
-    def get_selected_rows(self) -> Set[int]:
+    def get_selected_row_indexes(self) -> Set[int]:
         rows = set()
         for idx in self._view.selectionModel().selectedRows():
             rows.add(self._model.source_index(idx.row()))
@@ -249,4 +249,4 @@ class DataFrameTable(QWidget):
         self._model.rebuild_view()
 
     def _on_selection_changed(self, selected, deselected) -> None:
-        self.selection_changed.emit(self.get_selected_rows())
+        self.selection_changed.emit(self.get_selected_row_indexes())

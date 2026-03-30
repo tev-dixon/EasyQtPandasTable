@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QApplication
 class TestSelection:
     def test_set_and_get_selection(self, table):
         table.set_selected_rows({0, 5, 10})
-        assert table.get_selected_rows() == {0, 5, 10}
+        assert table.get_selected_row_indexes() == {0, 5, 10}
 
     def test_selection_changed_signal(self, qtbot, table):
         received = []
@@ -20,14 +20,14 @@ class TestSelection:
 
     def test_empty_selection(self, table):
         table.set_selected_rows(set())
-        assert table.get_selected_rows() == set()
+        assert table.get_selected_row_indexes() == set()
 
     def test_selection_after_sort(self, table):
         table.set_selected_rows({0, 1, 2})
         table.table_model.set_sort(2, ascending=True)
         table.table_model.rebuild_view()
         table.set_selected_rows({0, 1, 2})
-        assert table.get_selected_rows() == {0, 1, 2}
+        assert table.get_selected_row_indexes() == {0, 1, 2}
 
 
 class TestRegressionSelection:
@@ -49,21 +49,21 @@ class TestRegressionSelection:
         QApplication.processEvents()
         table.set_selected_rows({5, 6})
         QApplication.processEvents()
-        assert table.get_selected_rows() == {5, 6}, "old selection should be fully cleared"
+        assert table.get_selected_row_indexes() == {5, 6}, "old selection should be fully cleared"
 
     def test_empty_selection_after_nonempty(self, table):
         table.set_selected_rows({0, 1})
         QApplication.processEvents()
         table.set_selected_rows(set())
         QApplication.processEvents()
-        assert table.get_selected_rows() == set()
+        assert table.get_selected_row_indexes() == set()
 
 
 class TestSelectFirstVisibleRow:
     def test_selects_first_row(self, table):
         src = table.select_first_visible_row()
         assert src is not None
-        assert table.get_selected_rows() == {src}
+        assert table.get_selected_row_indexes() == {src}
 
     def test_returns_source_index(self, table):
         src = table.select_first_visible_row()
@@ -77,7 +77,7 @@ class TestSelectFirstVisibleRow:
         qtbot.addWidget(t)
         t.set_data(pd.DataFrame())
         assert t.select_first_visible_row() is None
-        assert t.get_selected_rows() == set()
+        assert t.get_selected_row_indexes() == set()
 
     def test_respects_sort(self, table):
         table.table_model.set_sort(2, ascending=True)
@@ -85,7 +85,7 @@ class TestSelectFirstVisibleRow:
         src = table.select_first_visible_row()
         # Should be the row with the smallest value, not source row 0
         assert src == table.table_model.source_index(0)
-        assert table.get_selected_rows() == {src}
+        assert table.get_selected_row_indexes() == {src}
 
     def test_respects_filter(self, qtbot, sample_df):
         from dataframe_table import ColumnDef, DataFrameTable, NumericFilter
