@@ -18,7 +18,7 @@ from dataframe_table import (
     TextFilter,
     NumericFilter,
     DropdownFilter,
-    OptionsFilter,
+    MultiOptionsFilter,
     CheckBoxDelegate,
     ButtonDelegate,
     SelectionMode
@@ -85,16 +85,15 @@ class MainWindow(QMainWindow):
                 key="category", header="Category", stretch=1,
                 sortable=True,
                 # options_fn reads from self.df so the list is always current
-                filter_widget=OptionsFilter(
+                filter_widget=MultiOptionsFilter(
                     options_fn=lambda: sorted(self.df["category"].dropna().unique()),
-                    multi_select=True
                 ),
             ),
             ColumnDef(
                 key="tag", header="Tag", stretch=0.8,
                 sortable=True,
                 # Dynamic source — get_tags() is called every time dropdown opens
-                filter_widget=OptionsFilter(options_fn=get_tags),
+                filter_widget=MultiOptionsFilter(options_fn=get_tags),
             ),
             ColumnDef(
                 key="_delete", header="", stretch=0.5,
@@ -119,6 +118,9 @@ class MainWindow(QMainWindow):
         # ── Signals ──
         self.table.selection_changed.connect(self._on_selection_changed)
         self.table.data_updated.connect(self._on_data_changed)
+        filt = self.table.get_filter("name")
+        if filt is not None:
+            filt.return_pressed.connect(self.table.select_first_visible_row)
 
         # ── Toolbar row 1 — basics ──
         btn_toggle_filters = QPushButton("Toggle Filters")

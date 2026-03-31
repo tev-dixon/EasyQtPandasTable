@@ -3,7 +3,7 @@
 from .column import ColumnDef
 from .delegates import ButtonDelegate, CheckBoxDelegate
 from .filter_bar import FilterBar
-from .filters import AbstractFilter, DropdownFilter, NumericFilter, OptionsFilter, TextFilter
+from .filters import AbstractFilter, DropdownFilter, MultiOptionsFilter, NumericFilter, SingleOptionsFilter, TextFilter
 from .model import DataFrameTableModel
 from .widget import DataFrameTable, SelectionMode, TableStyle
 
@@ -18,7 +18,8 @@ __all__ = [
     "TextFilter",
     "NumericFilter",
     "DropdownFilter",
-    "OptionsFilter",
+    "SingleOptionsFilter",
+    "MultiOptionsFilter",
     "CheckBoxDelegate",
     "ButtonDelegate",
 ]

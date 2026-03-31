@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from typing import Callable, List, Optional, Sequence
 
 import numpy as np
@@ -133,14 +134,12 @@ class _OptionsPopup(QWidget):
             return
         self._change_handled = True
         if item.text() == self._SELECT_ALL_LABEL:
-            # (Select All) was toggled — apply to all option items
             new_state = item.checkState()
             self._guard = True
             for opt in self._option_items():
                 opt.setCheckState(new_state)
             self._guard = False
         else:
-            # Regular item toggled — update (Select All) to match
             self._guard = True
             self._sync_select_all_state()
             self._guard = False
@@ -168,23 +167,23 @@ class _OptionsPopup(QWidget):
         self.closed.emit()
 
 
-class OptionsFilter(AbstractFilter):
-    """Searchable dropdown filter with optional multi-select."""
+# ---------------------------------------------------------------------------
+# Base class for options filters
+# ---------------------------------------------------------------------------
 
-    _ALL_LABEL = "(All)"
+class _OptionsFilterBase(AbstractFilter):
+    """Shared wiring for popup-based option filters."""
 
     def __init__(
         self,
+        multi_select: bool,
         options_fn: Optional[Callable[[], Sequence[str]]] = None,
-        multi_select: bool = False,
         placeholder: str = "Select…",
     ):
         super().__init__()
         self._options_fn = options_fn
         self._multi_select = multi_select
         self._static_options: List[str] = []
-        self._checked: set[str] = set()       # multi-select state
-        self._selected: str | None = None      # single-select state
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(1, 1, 1, 1)
@@ -197,59 +196,17 @@ class OptionsFilter(AbstractFilter):
 
         self._popup: _OptionsPopup | None = None
 
-    # -- AbstractFilter interface --
-
-    def is_active(self) -> bool:
-        if self._multi_select:
-            return len(self._checked) > 0
-        return self._selected is not None
-
-    def reset(self) -> None:
-        self._checked.clear()
-        self._selected = None
-        self._update_display()
-
-    def checked(self) -> set[str]:
-        """Return the currently checked options (multi-select)."""
-        if not self._multi_select:
-            raise RuntimeError("Tried to use a multi-select method when self._multi_select = False")
-        return set(self._checked)
-
-    def set_checked(self, values: set[str]) -> None:
-        """Set checked options (multi-select) and emit filter_changed."""
-        if not self._multi_select:
-            raise RuntimeError("Tried to use a multi-select method when self._multi_select = False")
-        self._checked = set(values)
-        self._update_display()
-        self.filter_changed.emit()
-
-    def selected(self) -> str | None:
-        """Return the currently selected option (single-select)."""
-        if self._multi_select:
-            raise RuntimeError("Tried to use a single-select method when self._multi_select = True")
-        return self._selected
-
-    def set_selected(self, value: str | None) -> None:
-        """Set selected option (single-select) and emit filter_changed."""
-        if self._multi_select:
-            raise RuntimeError("Tried to use a single-select method when self._multi_select = True")
-        self._selected = value
-        self._update_display()
-        self.filter_changed.emit()
-
     def focus(self) -> None:
         self._on_display_clicked(None)
 
-    def apply_filter(self, series: pd.Series) -> np.ndarray:
-        if self._multi_select:
-            if not self._checked:
-                return np.ones(len(series), dtype=bool)
-            return series.astype(str).isin(self._checked).values
-        if self._selected is None:
-            return np.ones(len(series), dtype=bool)
-        return (series.astype(str) == self._selected).values
+    @abstractmethod
+    def _on_popup_interaction(self) -> None: ...
 
-    # -- internals --
+    @abstractmethod
+    def _update_display(self) -> None: ...
+
+    def _on_popup_closed(self) -> None:
+        pass
 
     def _ensure_popup(self) -> _OptionsPopup:
         if self._popup is None:
@@ -266,30 +223,104 @@ class OptionsFilter(AbstractFilter):
     def _on_display_clicked(self, event) -> None:
         popup = self._ensure_popup()
         options = self._get_options()
-        popup.populate(options, self._checked if self._multi_select else None)
+        popup.populate(options, self._get_checked_for_popup())
         pos = self.mapToGlobal(QPoint(0, self.height()))
         popup.open_at(pos, self.width())
 
+    def _get_checked_for_popup(self) -> set[str] | None:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Concrete filters
+# ---------------------------------------------------------------------------
+
+class SingleOptionsFilter(_OptionsFilterBase):
+    """Searchable dropdown filter — pick one option."""
+
+    def __init__(
+        self,
+        options_fn: Optional[Callable[[], Sequence[str]]] = None,
+        placeholder: str = "Select…",
+    ):
+        super().__init__(multi_select=False, options_fn=options_fn, placeholder=placeholder)
+        self._selected: str | None = None
+
+    def is_active(self) -> bool:
+        return self._selected is not None
+
+    def reset(self) -> None:
+        self._selected = None
+        self._update_display()
+
+    def selected(self) -> str | None:
+        return self._selected
+
+    def set_selected(self, value: str | None) -> None:
+        self._selected = value
+        self._update_display()
+        self.filter_changed.emit()
+
+    def apply_filter(self, series: pd.Series) -> np.ndarray:
+        if self._selected is None:
+            return np.ones(len(series), dtype=bool)
+        return (series.astype(str) == self._selected).values
+
     def _on_popup_interaction(self) -> None:
-        if self._multi_select:
-            self._checked = self._popup.get_checked()
-        else:
-            self._selected = self._popup.get_selected_single()
+        self._selected = self._popup.get_selected_single()
+        self._update_display()
+        self.filter_changed.emit()
+
+    def _update_display(self) -> None:
+        self._display.setText(self._selected or "")
+
+
+class MultiOptionsFilter(_OptionsFilterBase):
+    """Searchable dropdown filter — pick multiple options."""
+
+    def __init__(
+        self,
+        options_fn: Optional[Callable[[], Sequence[str]]] = None,
+        placeholder: str = "Select…",
+    ):
+        super().__init__(multi_select=True, options_fn=options_fn, placeholder=placeholder)
+        self._checked: set[str] = set()
+
+    def is_active(self) -> bool:
+        return len(self._checked) > 0
+
+    def reset(self) -> None:
+        self._checked.clear()
+        self._update_display()
+
+    def checked(self) -> set[str]:
+        return set(self._checked)
+
+    def set_checked(self, values: set[str]) -> None:
+        self._checked = set(values)
+        self._update_display()
+        self.filter_changed.emit()
+
+    def apply_filter(self, series: pd.Series) -> np.ndarray:
+        if not self._checked:
+            return np.ones(len(series), dtype=bool)
+        return series.astype(str).isin(self._checked).values
+
+    def _get_checked_for_popup(self) -> set[str] | None:
+        return self._checked
+
+    def _on_popup_interaction(self) -> None:
+        self._checked = self._popup.get_checked()
         self._update_display()
         self.filter_changed.emit()
 
     def _on_popup_closed(self) -> None:
-        # sync final state when popup closes (multi-select)
-        if self._multi_select:
-            new_checked = self._popup.get_checked()
-            if new_checked != self._checked:
-                self._checked = new_checked
-                self._update_display()
-                self.filter_changed.emit()
+        new_checked = self._popup.get_checked()
+        if new_checked != self._checked:
+            self._checked = new_checked
+            self._update_display()
+            self.filter_changed.emit()
 
     def _update_display(self) -> None:
-        if self._multi_select:
-            n = len(self._checked)
-            self._display.setText(f"{n} selected" if n > 0 else "")
-        else:
-            self._display.setText(self._selected or "")
+        n = len(self._checked)
+        self._display.setText(f"{n} selected" if n > 0 else "")
