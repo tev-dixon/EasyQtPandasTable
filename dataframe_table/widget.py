@@ -5,6 +5,8 @@ from enum import Enum
 from typing import List, Optional, Set, Union, Iterable
 
 import pandas as pd
+import numpy as np
+
 from PyQt6.QtCore import QItemSelectionModel, Qt, pyqtSignal
 from PyQt6.QtWidgets import QAbstractItemView, QHeaderView, QTableView, QVBoxLayout, QWidget
 
@@ -96,9 +98,11 @@ class DataFrameTable(QWidget):
     # Public API
     # ==================================================================
 
-    def set_data(self, df: pd.DataFrame) -> None:
-        self._model.set_dataframe(df)
-        self.data_set.emit()
+    def set_data(self, data: pd.DataFrame | list[dict] | dict) -> None:
+        if not isinstance(data, pd.DataFrame):
+            data = pd.DataFrame(data)
+        self._model.set_dataframe(data)
+        self.data_set.emit(set(range(len(data))))
 
     def get_data(self) -> pd.DataFrame:
         return self._model.get_dataframe()
@@ -139,14 +143,25 @@ class DataFrameTable(QWidget):
             rows.add(self._model.source_index(idx.row()))
         return rows
 
-    def get_row(self, source_index: int):
+    def get_row(self, source_index: int) -> dict:
         row = self._model.get_dataframe().iloc[source_index]
-        return dict(row)
+        return {k: self._to_native(v) for k, v in row.items()}
 
-    def get_rows(self, source_indices: Iterable):
+    def get_rows(self, source_indices: Iterable) -> list[dict]:
         indices = sorted(source_indices)
         sub = self._model.get_dataframe().iloc[indices]
-        return sub.to_dict(orient="records")
+        return [
+            {k: self._to_native(v) for k, v in record.items()}
+            for record in sub.to_dict(orient="records")
+        ]
+
+    @staticmethod
+    def _to_native(value):
+        if isinstance(value, np.generic):
+            return value.item()
+        if isinstance(value, float) and pd.isna(value):
+            return None
+        return value
 
     def select_first_visible_row(self) -> Optional[int]:
         if self._model.rowCount() == 0:

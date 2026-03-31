@@ -40,7 +40,7 @@ class DataFrameTableModel(QAbstractTableModel):
 
     def set_dataframe(self, df: pd.DataFrame) -> None:
         self.beginResetModel()
-        self._df = df.reset_index(drop=True)
+        self._df = df.reset_index(drop=True).copy()
         self._rebuild_view()
         self.endResetModel()
 
