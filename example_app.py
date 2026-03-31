@@ -18,6 +18,7 @@ from EasyQtPandasTable import (
     TextFilter,
     NumericFilter,
     DropdownFilter,
+    SingleOptionsFilter,
     MultiOptionsFilter,
     CheckBoxDelegate,
     ButtonDelegate,
@@ -93,7 +94,7 @@ class MainWindow(QMainWindow):
                 key="tag", header="Tag", stretch=0.8,
                 sortable=True,
                 # Dynamic source — get_tags() is called every time dropdown opens
-                filter_widget=MultiOptionsFilter(options_fn=get_tags),
+                filter_widget=SingleOptionsFilter(options_fn=get_tags),
             ),
             ColumnDef(
                 key="_delete", header="", stretch=0.5,
