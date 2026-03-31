@@ -33,7 +33,7 @@ class CheckBoxDelegate(QStyledItemDelegate):
                 current = bool(index.data(Qt.ItemDataRole.UserRole))
                 if self._on_toggle:
                     source_row = model.source_index(index.row())
-                    self._on_toggle(source_row, current)
+                    self._on_toggle(source_row, not current)
                 return True
         return False
 
