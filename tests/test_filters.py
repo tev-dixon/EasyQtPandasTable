@@ -7,7 +7,7 @@ import inspect
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication
 
-from dataframe_table import ColumnDef, DataFrameTable, NumericFilter, TextFilter
+from EasyQtPandasTable import ColumnDef, DataFrameTable, NumericFilter, TextFilter
 from conftest import _basic_columns
 
 

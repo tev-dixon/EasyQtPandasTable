@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QWidget, QPushButton, QLabel,
 )
 
-from dataframe_table import (
+from EasyQtPandasTable import (
     ColumnDef,
     DataFrameTable,
     TableStyle,

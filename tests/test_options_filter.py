@@ -6,7 +6,7 @@ import pandas as pd
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication
 
-from dataframe_table import ColumnDef, DataFrameTable, OptionsFilter
+from EasyQtPandasTable import ColumnDef, DataFrameTable, OptionsFilter
 from conftest import _basic_columns
 
 

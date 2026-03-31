@@ -71,7 +71,7 @@ class TestSelectFirstVisibleRow:
 
     def test_returns_none_on_empty(self, qtbot):
         import pandas as pd
-        from dataframe_table import DataFrameTable
+        from EasyQtPandasTable import DataFrameTable
         from conftest import _basic_columns
         t = DataFrameTable(columns=_basic_columns())
         qtbot.addWidget(t)
@@ -88,7 +88,7 @@ class TestSelectFirstVisibleRow:
         assert table.get_selected_row_indexes() == {src}
 
     def test_respects_filter(self, qtbot, sample_df):
-        from dataframe_table import ColumnDef, DataFrameTable, NumericFilter
+        from EasyQtPandasTable import ColumnDef, DataFrameTable, NumericFilter
         from conftest import _basic_columns
         nf = NumericFilter()
         cols = _basic_columns()

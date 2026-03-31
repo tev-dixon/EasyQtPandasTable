@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt
 
-from dataframe_table import ButtonDelegate, CheckBoxDelegate, ColumnDef, DataFrameTable
+from EasyQtPandasTable import ButtonDelegate, CheckBoxDelegate, ColumnDef, DataFrameTable
 from conftest import _basic_columns
 
 

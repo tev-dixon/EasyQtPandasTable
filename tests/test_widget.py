@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
-import time
-
 import pandas as pd
-import pytest
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QAbstractItemView, QApplication
 
-from dataframe_table import (
+from EasyQtPandasTable import (
     ColumnDef,
     DataFrameTable,
     NumericFilter,
     SelectionMode,
-    TableStyle,
     TextFilter,
 )
 from conftest import _basic_columns, _sample_df

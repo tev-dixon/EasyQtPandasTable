@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 from PyQt6.QtWidgets import QApplication
 
-from dataframe_table import ColumnDef, DataFrameTable
+from EasyQtPandasTable import ColumnDef, DataFrameTable
 
 
 def _sample_df(n: int = 100) -> pd.DataFrame:
