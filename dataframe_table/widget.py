@@ -121,21 +121,27 @@ class DataFrameTable(QWidget):
 
     # ---- selection ----------------------------------------------------
 
-    def set_selected_rows(self, source_indices: Set[int]) -> None:
+    def set_selected_rows(self, source_indices: Set[int], silent: bool = False) -> None:
         sel = self._view.selectionModel()
-        sel.clearSelection()
-        if not source_indices:
-            return
-        top_view_row = None
-        for src in source_indices:
-            view_row = self._model.view_row_for_source(src)
-            if view_row is not None:
-                sel.select(self._model.index(view_row, 0), QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows)
-                if top_view_row is None or view_row < top_view_row:
-                    top_view_row = view_row
-        if top_view_row is not None:
-            sel.setCurrentIndex(self._model.index(top_view_row, 0), QItemSelectionModel.SelectionFlag.Current)
-        self._view.setFocus()
+        if silent:
+            sel.blockSignals(True)
+        try:
+            sel.clearSelection()
+            if not source_indices:
+                return
+            top_view_row = None
+            for src in source_indices:
+                view_row = self._model.view_row_for_source(src)
+                if view_row is not None:
+                    sel.select(self._model.index(view_row, 0), QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows)
+                    if top_view_row is None or view_row < top_view_row:
+                        top_view_row = view_row
+            if top_view_row is not None:
+                sel.setCurrentIndex(self._model.index(top_view_row, 0), QItemSelectionModel.SelectionFlag.Current)
+            self._view.setFocus()
+        finally:
+            if silent:
+                sel.blockSignals(False)
 
     def get_selected_row_indexes(self) -> Set[int]:
         rows = set()
