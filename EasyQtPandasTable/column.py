@@ -22,6 +22,8 @@ class ColumnDef:
     alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
     formatter: Optional[Callable[[Any], str]] = None
     editable: bool = False
+    dtype: Optional[type] = None
+    style: Optional[Callable[[Any], Optional[QColor]]] = None
 
     def __post_init__(self):
         if self.header is None:
