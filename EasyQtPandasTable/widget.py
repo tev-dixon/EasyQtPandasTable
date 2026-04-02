@@ -237,6 +237,48 @@ class DataFrameTable(QWidget):
             {k: self._to_native(v) for k, v in record.items()}
             for record in sub.to_dict(orient="records")
         ]
+    
+    def get_row_idxs_where(
+        self, key: str, condition: Union[Callable[[any], bool], any]
+    ) -> list[int]:
+        """
+        Return a list of source row indices where the column `key` satisfies the condition.
+
+        Parameters
+        ----------
+        key : str
+            Column key to check.
+        condition : callable or value
+            If callable, should accept a cell value and return True/False.
+            If a single value, will select rows equal to that value.
+
+        Returns
+        -------
+        list[int]
+            List of source indices where condition is True.
+        """
+        df = self.get_data()
+        if key not in df.columns:
+            return []
+
+        if callable(condition):
+            mask = df[key].apply(condition)
+        else:
+            mask = df[key] == condition
+
+        return df.index[mask].tolist()
+
+    def get_row_idx_where(
+        self, key: str, condition: Union[Callable[[any], bool], any]
+    ) -> Optional[int]:
+        """
+        Return the first source row index where the column `key` satisfies the condition.
+        Returns None if no match is found.
+        """
+        idxs = self.get_row_idxs_where(key, condition)
+        if idxs:
+            return idxs[0]
+        return None
 
     @staticmethod
     def _to_native(value):
