@@ -180,7 +180,6 @@ class DataFrameTable(QWidget):
         self.selection_changed.emit(self.get_selected_row_indexes())
 
     # ---- selection ----------------------------------------------------
-
     def set_selected_rows(self, source_indices: Set[int], silent: bool = False) -> None:
         if self._selection_mode == SelectionMode.Single and len(source_indices) > 1:
             raise ValueError("set_selected_rows() called with multiple indices in Single selection mode")
@@ -239,28 +238,24 @@ class DataFrameTable(QWidget):
         ]
     
     def get_row_idxs_where(
-        self, key: str, condition: Union[Callable[[any], bool], any]
+        self, key: str, condition: Union[Callable[[any], bool], any], only_visible: bool = False
     ) -> list[int]:
         """
         Return a list of source row indices where the column `key` satisfies the condition.
-
-        Parameters
-        ----------
-        key : str
-            Column key to check.
-        condition : callable or value
-            If callable, should accept a cell value and return True/False.
-            If a single value, will select rows equal to that value.
-
-        Returns
-        -------
-        list[int]
-            List of source indices where condition is True.
+        Optionally restrict to currently visible rows.
         """
         df = self.get_data()
         if key not in df.columns:
             return []
 
+        # Pre-filter by visible rows if requested
+        if only_visible:
+            visible_idxs = list(self._model._view_indices.tolist())
+            if not visible_idxs:
+                return []
+            df = df.loc[visible_idxs]
+
+        # Apply condition
         if callable(condition):
             mask = df[key].apply(condition)
         else:
@@ -269,13 +264,13 @@ class DataFrameTable(QWidget):
         return df.index[mask].tolist()
 
     def get_row_idx_where(
-        self, key: str, condition: Union[Callable[[any], bool], any]
+        self, key: str, condition: Union[Callable[[any], bool], any], only_visible: bool = False
     ) -> Optional[int]:
         """
         Return the first source row index where the column `key` satisfies the condition.
         Returns None if no match is found.
         """
-        idxs = self.get_row_idxs_where(key, condition)
+        idxs = self.get_row_idxs_where(key, condition, only_visible)
         if idxs:
             return idxs[0]
         return None
@@ -419,4 +414,3 @@ class DataFrameTable(QWidget):
     def _on_model_reset(self) -> None:
         visible = set(self._model._view_indices.tolist())
         self.visible_rows_changed.emit(visible)
-    
